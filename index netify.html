@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Poker Table</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--tx:#1d2a24;--mu:#6b756f;--ac:#14724a;--on:#fff;--bd:#ddd8cc;--bad:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#101a15;--card:#1a2720;--tx:#e9efe9;--mu:#9aa89f;--ac:#3fb67f;--on:#06150d;--bd:#2c3b33;--bad:#ff8a80}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:28px;margin:8px 0 4px;text-align:center}
+.sub{color:var(--mu);text-align:center;margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+input{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin-bottom:10px}
+button{font:inherit;font-weight:600;padding:11px 14px;border-radius:10px;border:1px solid var(--ac);background:var(--ac);color:var(--on);cursor:pointer}
+button.alt{background:transparent;color:var(--ac)}button.bad{background:transparent;color:var(--bad);border-color:var(--bad)}
+button.big{width:100%;padding:14px;margin-bottom:10px}button.sm{padding:6px 10px;font-size:13px;margin-top:8px}
+.row{display:flex;gap:8px;align-items:center}.row input{margin:0;flex:1;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats b{display:block;font-size:20px}.stats span,.mu{color:var(--mu);font-size:13px}
+.code{font-size:30px;letter-spacing:6px;font-weight:700;text-align:center;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:baseline}
+.pos{color:var(--ac)}.neg{color:var(--bad)}.err{color:var(--bad);text-align:center;min-height:20px}
+</style></head><body><main id="app"><p class="sub">Loading…</p></main>
+<script>
+/* ====== STEP: PASTE YOUR SUPABASE SETTINGS HERE (between the quote marks) ====== */
+const SUPABASE_URL = "https://wtlhuoomnzvyecetydyz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_3f3UkGNIwGNIVDR8u-0w_A_zfnGCPTq";
+/* ================================================================================ */
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>(n<0?'-':'')+'£'+Math.abs(n).toFixed(2).replace(/\.00$/,'');
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let sb,code=null,table=null,players=[],err='',chan=null,poll=null,last='';
+let uid=store.get('pt_uid');if(!uid){uid='u'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);store.set('pt_uid',uid)}
+const T='poker_tables',P='poker_players';
+
+function init(){
+  if(SUPABASE_URL.includes('PASTE')||SUPABASE_KEY.includes('PASTE')){
+    $('#app').innerHTML='<h1>♠ Poker Table</h1><p class="sub">Setup needed: open this file in a text editor and paste your Supabase URL and key near the top.</p>';return}
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)}
+  catch(e){$('#app').innerHTML='<p class="sub">Could not start. Check your internet and Supabase settings.</p>';return}
+  const saved=store.get('pt_code');if(saved){enter(saved,true)}else render();
+}
+function genCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+function myName(){const v=($('#name')||{}).value;const n=(v||store.get('pt_name')||'').trim();if(v)store.set('pt_name',n);return n}
+
+async function createTable(){
+  const n=myName();if(!n){err='Enter your name first.';return render()}
+  let c;
+  for(let i=0;i<5;i++){c=genCode();const r=await sb.from(T).select('code').eq('code',c).maybeSingle();if(r.error){err='Database error: '+r.error.message;return render()}if(!r.data)break}
+  const now=Date.now();
+  let r=await sb.from(T).insert({code:c,host:uid,host_name:n,created:now});
+  if(!r.error)r=await sb.from(P).insert({code:c,uid,name:n,buyins:[],joined:now});
+  if(r.error){err='Could not create table: '+r.error.message;return render()}
+  enter(c,false);
+}
+async function joinTable(){
+  const n=myName(),c=(($('#code')||{}).value||'').trim().toUpperCase();
+  if(!n||!c){err='Enter your name and the table code.';return render()}
+  const t=await sb.from(T).select('code').eq('code',c).maybeSingle();
+  if(t.error){err='Database error: '+t.error.message;return render()}
+  if(!t.data){err='No table with that code.';return render()}
+  const p=await sb.from(P).select('uid').eq('code',c).eq('uid',uid).maybeSingle();
+  if(!p.data){const r=await sb.from(P).insert({code:c,uid,name:n,buyins:[],joined:Date.now()});if(r.error){err='Could not join: '+r.error.message;return render()}}
+  enter(c,false);
+}
+async function enter(c,quiet){
+  code=c;err='';last='';
+  if(!await refresh()){if(!quiet)err='Could not find that table.';leave();return}
+  store.set('pt_code',c);
+  stop();
+  chan=sb.channel('t-'+c)
+    .on('postgres_changes',{event:'*',schema:'public',table:T,filter:'code=eq.'+c},refresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:P,filter:'code=eq.'+c},refresh)
+    .subscribe();
+  poll=setInterval(refresh,4000); /* backup in case live updates are slow */
+}
+function stop(){if(chan){sb.removeChannel(chan);chan=null}if(poll){clearInterval(poll);poll=null}}
+async function refresh(){
+  if(!code)return false;
+  const t=await sb.from(T).select('*').eq('code',code).maybeSingle();
+  if(t.error)return true; /* temporary glitch: keep what we have */
+  if(!t.data)return false;
+  const p=await sb.from(P).select('*').eq('code',code).order('joined');
+  if(p.error)return true;
+  const sig=JSON.stringify([t.data,p.data]);
+  table=t.data;players=p.data;
+  if(sig!==last){last=sig;render()}
+  return true;
+}
+function leave(){stop();code=null;table=null;players=[];last='';store.set('pt_code','');render()}
+
+const buys=p=>Array.isArray(p.buyins)?p.buyins:[];
+const tot=p=>buys(p).reduce((a,b)=>a+b,0);
+async function upd(tbl,match,data){
+  const r=await sb.from(tbl).update(data).match(match);
+  if(r.error){err='Update failed: '+r.error.message;render()}else refresh();
+}
+const updP=(id,data)=>upd(P,{code,uid:id},data);
+function addBuy(id){const el=$('#in_'+id),v=parseFloat(el.value);if(!(v>0))return;const p=players.find(x=>x.uid===id);el.value='';updP(id,{buyins:[...buys(p),v]})}
+function undoBuy(id){const p=players.find(x=>x.uid===id);updP(id,{buyins:buys(p).slice(0,-1)})}
+function cash(id){const v=parseFloat($('#out_'+id).value);if(v>=0)updP(id,{cashout:v})}
+function undoCash(id){updP(id,{cashout:null})}
+function closeTable(){if(confirm('Close the table? The clock will stop.'))upd(T,{code},{closed:Date.now()})}
+function reopenTable(){upd(T,{code},{closed:null})}
+function copy(){try{navigator.clipboard.writeText(code)}catch(e){}}
+
+function elapsed(){if(!table)return'';const s=Math.floor(((table.closed||Date.now())-table.created)/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);
+  return h+'h '+String(m).padStart(2,'0')+'m '+String(s%60).padStart(2,'0')+'s'}
+setInterval(()=>{const c=$('#clock');if(c&&table&&!table.closed)c.textContent=elapsed()},1000);
+
+function render(){
+  const keep={};document.querySelectorAll('input').forEach(i=>{if(i.id)keep[i.id]=i.value});const fo=document.activeElement&&document.activeElement.id;
+  const a=$('#app');
+  if(!code||!table){
+    a.innerHTML=`<h1>♠ Poker Table</h1><p class="sub">Track buy-ins and cash-outs with your group</p>
+    <div class="card"><input id="name" placeholder="Your name" maxlength="20" value="${esc(store.get('pt_name')||'')}">
+    <button class="big" onclick="createTable()">Create a table</button>
+    <p class="mu" style="text-align:center;margin:4px 0 10px">or join a friend's</p>
+    <input id="code" placeholder="TABLE CODE" maxlength="5" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
+    <button class="big alt" onclick="joinTable()">Join table</button><div class="err">${esc(err)}</div></div>`;
+  }else{
+    const isHost=table.host===uid,bought=players.reduce((s,p)=>s+tot(p),0),out=players.reduce((s,p)=>s+(p.cashout||0),0);
+    const unsettled=players.some(p=>p.cashout==null);
+    let h=`<div class="card"><div class="mu" style="text-align:center">Table code (tap to copy)</div><div class="code" onclick="copy()">${esc(code)}</div>
+    <p class="mu" style="text-align:center;margin:4px 0 12px">Host: ${esc(table.host_name)} · ${table.closed?'Closed':'Open'} for <b id="clock">${elapsed()}</b></p>
+    <div class="stats"><div><b>${money(bought-out)}</b><span>on the table</span></div><div><b>${money(bought)}</b><span>total bought in</span></div><div><b>${players.length}</b><span>players</span></div></div></div>`;
+    if(table.closed&&!unsettled&&Math.abs(bought-out)>0.005)h+=`<div class="card neg">Cash-outs are ${money(Math.abs(bought-out))} ${out>bought?'more':'less'} than buy-ins.</div>`;
+    players.forEach(p=>{
+      const can=p.uid===uid||isHost,t=tot(p),b=buys(p),net=p.cashout==null?null:p.cashout-t;
+      h+=`<div class="card"><div class="top"><b>${esc(p.name)}${p.uid===table.host?' 👑':''}${p.uid===uid?' (you)':''}</b><span>In: <b>${money(t)}</b></span></div>
+      <div class="chips">${b.map((x,i)=>`<span class="chip">${i?'Rebuy ':'Buy-in '}${money(x)}</span>`).join('')||'<span class="mu">No buy-ins yet</span>'}</div>`;
+      if(p.cashout!=null)h+=`<div class="top"><span>Cashed out <b>${money(p.cashout)}</b></span><b class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</b></div>`;
+      if(can&&p.cashout==null)h+=`<div class="row"><input id="in_${p.uid}" type="number" inputmode="decimal" placeholder="£ buy-in / rebuy"><button onclick="addBuy('${p.uid}')">Add</button></div>
+        <div class="row" style="margin-top:8px"><input id="out_${p.uid}" type="number" inputmode="decimal" placeholder="£ cash-out"><button class="alt" onclick="cash('${p.uid}')">Cash out</button></div>
+        ${b.length?`<button class="alt sm" onclick="undoBuy('${p.uid}')">Undo last buy-in</button>`:''}`;
+      else if(can)h+=`<button class="alt sm" onclick="undoCash('${p.uid}')">Undo cash-out</button>`;
+      h+='</div>';
+    });
+    h+=`<div class="row">${isHost?(table.closed?'<button class="alt" onclick="reopenTable()">Reopen table</button>':'<button class="bad" onclick="closeTable()">Close table</button>'):''}<button class="alt" onclick="leave()">Leave</button></div><div class="err">${esc(err)}</div>`;
+    a.innerHTML=h;
+  }
+  for(const k in keep){const e=document.getElementById(k);if(e)e.value=keep[k]}
+  if(fo){const e=document.getElementById(fo);if(e)e.focus()}
+}
+init();
+</script></body></html>

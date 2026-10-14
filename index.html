@@ -12,7 +12,7 @@ main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
 h1{font-size:28px;margin:8px 0 4px;text-align:center}
 .sub{color:var(--mu);text-align:center;margin:0 0 24px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
-input{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin-bottom:10px}
+input,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin-bottom:10px}
 button{font:inherit;font-weight:600;padding:11px 14px;border-radius:10px;border:1px solid var(--ac);background:var(--ac);color:var(--on);cursor:pointer}
 button.alt{background:transparent;color:var(--ac)}button.bad{background:transparent;color:var(--bad);border-color:var(--bad)}
 button.big{width:100%;padding:14px;margin-bottom:10px}button.sm{padding:6px 10px;font-size:13px;margin-top:8px}
@@ -23,6 +23,11 @@ button.big{width:100%;padding:14px;margin-bottom:10px}button.sm{padding:6px 10px
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;font-size:14px}
 .top{display:flex;justify-content:space-between;align-items:baseline}
 .pos{color:var(--ac)}.neg{color:var(--bad)}.err{color:var(--bad);text-align:center;min-height:20px}
+textarea{resize:vertical;min-height:72px}
+.chip.out{border-color:var(--ac);color:var(--ac)}
+.note{white-space:pre-wrap;word-break:break-word;font-size:14px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;margin:6px 0}
+.note a{color:var(--ac)}
+.sum .line{display:flex;justify-content:space-between;padding:4px 0}.sum h3{margin:14px 0 2px;font-size:15px}
 </style></head><body><main id="app"><p class="sub">Loading…</p></main>
 <script>
 /* ====== STEP: PASTE YOUR SUPABASE SETTINGS HERE (between the quote marks) ====== */
@@ -34,7 +39,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>(n<0?'-':'')+'£'+Math.abs(n).toFixed(2).replace(/\.00$/,'');
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let sb,code=null,table=null,players=[],err='',chan=null,poll=null,last='';
+let sb,code=null,table=null,players=[],err='',chan=null,poll=null,last='',noteMsg='';
 let uid=store.get('pt_uid');if(!uid){uid='u'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);store.set('pt_uid',uid)}
 const T='poker_tables',P='poker_players';
 
@@ -96,6 +101,10 @@ function leave(){stop();code=null;table=null;players=[];last='';store.set('pt_co
 
 const buys=p=>Array.isArray(p.buyins)?p.buyins:[];
 const tot=p=>buys(p).reduce((a,b)=>a+b,0);
+const parts=p=>Array.isArray(p.partials)?p.partials:[];
+const partTot=p=>parts(p).reduce((a,b)=>a+b,0);
+const outOf=p=>partTot(p)+(p.cashout||0);
+const linkify=s=>esc(s).replace(/((?:https?:\/\/|monzo\.me\/|www\.)[^\s<]+)/g,u=>{const h=/^https?:/.test(u)?u:'https://'+u;return '<a href="'+h+'" target="_blank" rel="noopener">'+u+'</a>'});
 async function upd(tbl,match,data){
   const r=await sb.from(tbl).update(data).match(match);
   if(r.error){err='Update failed: '+r.error.message;render()}else refresh();
@@ -105,6 +114,10 @@ function addBuy(id){const el=$('#in_'+id),v=parseFloat(el.value);if(!(v>0))retur
 function undoBuy(id){const p=players.find(x=>x.uid===id);updP(id,{buyins:buys(p).slice(0,-1)})}
 function cash(id){const v=parseFloat($('#out_'+id).value);if(v>=0)updP(id,{cashout:v})}
 function undoCash(id){updP(id,{cashout:null})}
+function takeOut(id){const el=$('#part_'+id),v=parseFloat(el.value);if(!(v>0))return;const p=players.find(x=>x.uid===id);el.value='';updP(id,{partials:[...parts(p),v]})}
+function takeBuyIn(id){const p=players.find(x=>x.uid===id),v=Math.round((tot(p)-partTot(p))*100)/100;if(v>0)updP(id,{partials:[...parts(p),v]})}
+function undoTakeOut(id){const p=players.find(x=>x.uid===id);updP(id,{partials:parts(p).slice(0,-1)})}
+async function saveNote(id){const el=$('#note_'+id);err='';await updP(id,{notes:el.value.trim()});if(!err){noteMsg='Saved ✓';render();setTimeout(()=>{noteMsg='';render()},2000)}}
 function closeTable(){if(confirm('Close the table? The clock will stop.'))upd(T,{code},{closed:Date.now()})}
 function reopenTable(){upd(T,{code},{closed:null})}
 function copy(){try{navigator.clipboard.writeText(code)}catch(e){}}
@@ -114,7 +127,7 @@ function elapsed(){if(!table)return'';const s=Math.floor(((table.closed||Date.no
 setInterval(()=>{const c=$('#clock');if(c&&table&&!table.closed)c.textContent=elapsed()},1000);
 
 function render(){
-  const keep={};document.querySelectorAll('input').forEach(i=>{if(i.id)keep[i.id]=i.value});const fo=document.activeElement&&document.activeElement.id;
+  const keep={};document.querySelectorAll('input,textarea').forEach(i=>{if(i.id)keep[i.id]=i.value});const fo=document.activeElement&&document.activeElement.id;
   const a=$('#app');
   if(!code||!table){
     a.innerHTML=`<h1>♠ Poker Table</h1><p class="sub">Track buy-ins and cash-outs with your group</p>
@@ -124,28 +137,8 @@ function render(){
     <input id="code" placeholder="TABLE CODE" maxlength="5" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
     <button class="big alt" onclick="joinTable()">Join table</button><div class="err">${esc(err)}</div></div>`;
   }else{
-    const isHost=table.host===uid,bought=players.reduce((s,p)=>s+tot(p),0),out=players.reduce((s,p)=>s+(p.cashout||0),0);
+    const isHost=table.host===uid,bought=players.reduce((s,p)=>s+tot(p),0),out=players.reduce((s,p)=>s+outOf(p),0);
     const unsettled=players.some(p=>p.cashout==null);
     let h=`<div class="card"><div class="mu" style="text-align:center">Table code (tap to copy)</div><div class="code" onclick="copy()">${esc(code)}</div>
     <p class="mu" style="text-align:center;margin:4px 0 12px">Host: ${esc(table.host_name)} · ${table.closed?'Closed':'Open'} for <b id="clock">${elapsed()}</b></p>
     <div class="stats"><div><b>${money(bought-out)}</b><span>on the table</span></div><div><b>${money(bought)}</b><span>total bought in</span></div><div><b>${players.length}</b><span>players</span></div></div></div>`;
-    if(table.closed&&!unsettled&&Math.abs(bought-out)>0.005)h+=`<div class="card neg">Cash-outs are ${money(Math.abs(bought-out))} ${out>bought?'more':'less'} than buy-ins.</div>`;
-    players.forEach(p=>{
-      const can=p.uid===uid||isHost,t=tot(p),b=buys(p),net=p.cashout==null?null:p.cashout-t;
-      h+=`<div class="card"><div class="top"><b>${esc(p.name)}${p.uid===table.host?' 👑':''}${p.uid===uid?' (you)':''}</b><span>In: <b>${money(t)}</b></span></div>
-      <div class="chips">${b.map((x,i)=>`<span class="chip">${i?'Rebuy ':'Buy-in '}${money(x)}</span>`).join('')||'<span class="mu">No buy-ins yet</span>'}</div>`;
-      if(p.cashout!=null)h+=`<div class="top"><span>Cashed out <b>${money(p.cashout)}</b></span><b class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</b></div>`;
-      if(can&&p.cashout==null)h+=`<div class="row"><input id="in_${p.uid}" type="number" inputmode="decimal" placeholder="£ buy-in / rebuy"><button onclick="addBuy('${p.uid}')">Add</button></div>
-        <div class="row" style="margin-top:8px"><input id="out_${p.uid}" type="number" inputmode="decimal" placeholder="£ cash-out"><button class="alt" onclick="cash('${p.uid}')">Cash out</button></div>
-        ${b.length?`<button class="alt sm" onclick="undoBuy('${p.uid}')">Undo last buy-in</button>`:''}`;
-      else if(can)h+=`<button class="alt sm" onclick="undoCash('${p.uid}')">Undo cash-out</button>`;
-      h+='</div>';
-    });
-    h+=`<div class="row">${isHost?(table.closed?'<button class="alt" onclick="reopenTable()">Reopen table</button>':'<button class="bad" onclick="closeTable()">Close table</button>'):''}<button class="alt" onclick="leave()">Leave</button></div><div class="err">${esc(err)}</div>`;
-    a.innerHTML=h;
-  }
-  for(const k in keep){const e=document.getElementById(k);if(e)e.value=keep[k]}
-  if(fo){const e=document.getElementById(fo);if(e)e.focus()}
-}
-init();
-</script></body></html>

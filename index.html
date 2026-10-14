@@ -142,3 +142,37 @@ function render(){
     let h=`<div class="card"><div class="mu" style="text-align:center">Table code (tap to copy)</div><div class="code" onclick="copy()">${esc(code)}</div>
     <p class="mu" style="text-align:center;margin:4px 0 12px">Host: ${esc(table.host_name)} · ${table.closed?'Closed':'Open'} for <b id="clock">${elapsed()}</b></p>
     <div class="stats"><div><b>${money(bought-out)}</b><span>on the table</span></div><div><b>${money(bought)}</b><span>total bought in</span></div><div><b>${players.length}</b><span>players</span></div></div></div>`;
+    if(table.closed&&!unsettled&&Math.abs(bought-out)>0.005)h+=`<div class="card neg">Cash-outs are ${money(Math.abs(bought-out))} ${out>bought?'more':'less'} than buy-ins.</div>`;
+    if(table.closed){
+      const rows=players.map(p=>({p,net:Math.round((outOf(p)-tot(p))*100)/100,done:p.cashout!=null}));
+      const done=rows.filter(r=>r.done).sort((a,b)=>b.net-a.net);
+      const wins=done.filter(r=>r.net>0.005),loss=done.filter(r=>r.net<-0.005).reverse(),even=done.filter(r=>Math.abs(r.net)<=0.005),wait=rows.filter(r=>!r.done);
+      const ln=r=>`<div class="line"><span>${esc(r.p.name)}</span><b class="${r.net>=0?'pos':'neg'}">${r.net>0?'+':''}${money(r.net)}</b></div>`;
+      h+=`<div class="card sum"><b>Table summary</b><div class="mu">${players.length} players · played for ${elapsed()} · ${money(bought)} bought in</div>
+      ${wins.length?'<h3>Won</h3>'+wins.map(r=>ln(r)+(r.p.notes?`<div class="note">${linkify(r.p.notes)}</div>`:'')).join(''):''}
+      ${loss.length?'<h3>Lost</h3>'+loss.map(ln).join(''):''}
+      ${even.length?'<h3>Broke even</h3>'+even.map(ln).join(''):''}
+      ${wait.length?`<p class="mu" style="margin-bottom:0">Not cashed out yet: ${wait.map(r=>esc(r.p.name)).join(', ')}</p>`:''}</div>`;
+    }
+    players.forEach(p=>{
+      const can=p.uid===uid||isHost,t=tot(p),b=buys(p),pr=parts(p),pt=partTot(p),net=p.cashout==null?null:Math.round((outOf(p)-t)*100)/100;
+      h+=`<div class="card"><div class="top"><b>${esc(p.name)}${p.uid===table.host?' 👑':''}${p.uid===uid?' (you)':''}</b><span>In: <b>${money(t)}</b></span></div>
+      <div class="chips">${b.map((x,i)=>`<span class="chip">${i?'Rebuy ':'Buy-in '}${money(x)}</span>`).join('')||'<span class="mu">No buy-ins yet</span>'}${pr.map(x=>`<span class="chip out">Took out ${money(x)}</span>`).join('')}</div>`;
+      if(p.cashout!=null)h+=`<div class="top"><span>Cashed out <b>${money(p.cashout)}</b>${pt?` <span class="mu">+ ${money(pt)} taken out earlier</span>`:''}</span><b class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</b></div>`;
+      if(can&&p.cashout==null)h+=`<div class="row"><input id="in_${p.uid}" type="number" inputmode="decimal" placeholder="£ buy-in / rebuy"><button onclick="addBuy('${p.uid}')">Add</button></div>
+        <div class="row" style="margin-top:8px"><input id="part_${p.uid}" type="number" inputmode="decimal" placeholder="£ take out, keep playing"><button class="alt" onclick="takeOut('${p.uid}')">Take out</button></div>
+        <div class="row" style="margin-top:8px"><input id="out_${p.uid}" type="number" inputmode="decimal" placeholder="£ final cash-out"><button class="alt" onclick="cash('${p.uid}')">Cash out</button></div>
+        ${b.length?`<button class="alt sm" onclick="undoBuy('${p.uid}')">Undo last buy-in</button>`:''}${pr.length?`<button class="alt sm" onclick="undoTakeOut('${p.uid}')">Undo last take-out</button>`:''}${t-pt>0.005?`<button class="alt sm" onclick="takeBuyIn('${p.uid}')">Take out buy-ins (${money(t-pt)})</button>`:''}`;
+      else if(can)h+=`<button class="alt sm" onclick="undoCash('${p.uid}')">Undo cash-out</button>`;
+      if(p.uid===uid)h+=`<div class="mu" style="margin-top:12px">Your payment details (everyone at the table can see these)</div><textarea id="note_${p.uid}" maxlength="300" placeholder="e.g. Monzo link or bank details, so people can pay you">${esc(p.notes||'')}</textarea><div class="row"><button class="alt sm" onclick="saveNote('${p.uid}')">Save details</button><span class="mu" style="margin-top:8px">${noteMsg}</span></div>`;
+      else if(p.notes)h+=`<div class="mu" style="margin-top:10px">Payment details</div><div class="note">${linkify(p.notes)}</div>`;
+      h+='</div>';
+    });
+    h+=`<div class="row">${isHost?(table.closed?'<button class="alt" onclick="reopenTable()">Reopen table</button>':'<button class="bad" onclick="closeTable()">Close table</button>'):''}<button class="alt" onclick="leave()">Leave</button></div><div class="err">${esc(err)}</div>`;
+    a.innerHTML=h;
+  }
+  for(const k in keep){const e=document.getElementById(k);if(e)e.value=keep[k]}
+  if(fo){const e=document.getElementById(fo);if(e)e.focus()}
+}
+init();
+</script></body></html>

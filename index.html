@@ -1,53 +1,80 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Poker Table</title>
+<title>Pokable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
-:root{--bg:#f4f1ea;--card:#fff;--tx:#1d2a24;--mu:#6b756f;--ac:#14724a;--on:#fff;--bd:#ddd8cc;--bad:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root{--bg:#101a15;--card:#1a2720;--tx:#e9efe9;--mu:#9aa89f;--ac:#3fb67f;--on:#06150d;--bd:#2c3b33;--bad:#ff8a80}}
+:root{--bg:#F5F6F8;--card:#fff;--tx:#12151C;--mu:#5B6270;--ac:#2F5BFF;--bd:#D9DCE3;--pos:#137A4B;--neg:#C23B33}
 *{box-sizing:border-box}html,body{margin:0}
-body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
-main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
-h1{font-size:28px;margin:8px 0 4px;text-align:center}
-.sub{color:var(--mu);text-align:center;margin:0 0 24px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
-input,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin-bottom:10px}
-button{font:inherit;font-weight:600;padding:11px 14px;border-radius:10px;border:1px solid var(--ac);background:var(--ac);color:var(--on);cursor:pointer}
-button.alt{background:transparent;color:var(--ac)}button.bad{background:transparent;color:var(--bad);border-color:var(--bad)}
-button.big{width:100%;padding:14px;margin-bottom:10px}button.sm{padding:6px 10px;font-size:13px;margin-top:8px}
-.row{display:flex;gap:8px;align-items:center}.row input{margin:0;flex:1;min-width:0}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
-.stats b{display:block;font-size:20px}.stats span,.mu{color:var(--mu);font-size:13px}
-.code{font-size:30px;letter-spacing:6px;font-weight:700;text-align:center;cursor:pointer}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;font-size:14px}
-.top{display:flex;justify-content:space-between;align-items:baseline}
-.pos{color:var(--ac)}.neg{color:var(--bad)}.err{color:var(--bad);text-align:center;min-height:20px}
-textarea{resize:vertical;min-height:72px}
+body{background:var(--bg);color:var(--tx);font:16px/1.4 Outfit,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;-webkit-text-size-adjust:100%}
+main{max-width:520px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(40px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.logo{font-weight:800;letter-spacing:-.04em;line-height:1}
+.logo svg{width:.76em;height:.76em;vertical-align:-.05em;margin:0 .03em}
+.mu{color:var(--mu);font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px}
+input,textarea{width:100%;font:inherit;font-size:16px;height:52px;padding:0 16px;border:1px solid var(--bd);border-radius:14px;background:#fff;color:var(--tx)}
+textarea{height:60px;padding:10px 12px;resize:none}
+.pill{border-radius:26px}
+button{font:inherit;font-weight:600;font-size:15px;height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--bd);background:#fff;color:var(--tx);cursor:pointer}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}
+button.dk{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+button.bad{background:transparent;color:var(--neg);border-color:var(--neg)}
+button.ghost{border:0;background:transparent;color:var(--mu);padding:0 4px}
+button.sm{height:36px;font-size:14px;padding:0 10px}
+button.big{width:100%;height:52px;border-radius:26px;font-size:16px}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}
+.stats b{display:block;font-size:22px;font-weight:800}.stats span{color:var(--mu);font-size:12px}
+.sum .stats{text-align:left}
+.code{font-size:40px;letter-spacing:.18em;font-weight:800;text-align:center;cursor:pointer;color:var(--ac);margin:2px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.chip{background:#fff;border:1px solid var(--bd);border-radius:20px;padding:3px 10px;font-size:13px}
 .chip.out{border-color:var(--ac);color:var(--ac)}
-.note{white-space:pre-wrap;word-break:break-word;font-size:14px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;margin:6px 0}
-.note a{color:var(--ac)}
-.sum .line{display:flex;justify-content:space-between;padding:4px 0}.sum h3{margin:14px 0 2px;font-size:15px}
-</style></head><body><main id="app"><p class="sub">Loading…</p></main>
+.pos{color:var(--pos)}.neg{color:var(--neg)}.err{color:var(--neg);text-align:center;min-height:20px;font-size:14px}
+.host{font-size:13px;font-weight:600;color:var(--ac)}
+.pd{margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)}
+.pd .lab{font-size:12px;color:var(--mu);margin-bottom:6px}
+.note{white-space:pre-wrap;word-break:break-word;font-size:15px}
+.note a,.link{color:var(--ac);text-decoration:underline}
+.sec{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:10px 0 0}
+.tag{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid var(--bd);font-size:13px;font-weight:800;color:var(--mu)}
+.res{padding:14px 0;border-bottom:1px solid var(--bd)}.res:last-child{border-bottom:0}
+.rk{width:28px;height:28px;border-radius:99px;background:var(--bg);color:var(--mu);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex:none}
+.rk.first{background:var(--tx);color:#fff}
+.bar{height:6px;border-radius:3px;background:var(--bg);margin-top:10px}.bar i{display:block;height:6px;border-radius:3px}
+.pay .det{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--bg);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ov{position:fixed;inset:0;background:rgba(18,21,28,.45);z-index:10}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-radius:24px 24px 0 0;padding:20px 16px calc(28px + env(safe-area-inset-bottom,0px));z-index:11;display:flex;flex-direction:column;gap:14px}
+.seg{display:flex;padding:4px;border-radius:14px;background:var(--bg);gap:4px}
+.seg button{flex:1;height:40px;border:0;border-radius:11px;background:transparent;color:var(--mu);font-size:14px}
+.seg button.on{background:#fff;color:var(--tx);font-weight:800;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.amt{height:56px;font-size:24px;font-weight:800;border:2px solid var(--ac)}
+</style></head><body><main id="app"><p class="mu" style="text-align:center">Loading…</p></main>
 <script>
-/* ====== STEP: PASTE YOUR SUPABASE SETTINGS HERE (between the quote marks) ====== */
+/* ====== SUPABASE SETTINGS ====== */
 const SUPABASE_URL = "https://wtlhuoomnzvyecetydyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_3f3UkGNIwGNIVDR8u-0w_A_zfnGCPTq";
-/* ================================================================================ */
+/* =============================== */
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>(n<0?'-':'')+'£'+Math.abs(n).toFixed(2).replace(/\.00$/,'');
+const r2=n=>Math.round(n*100)/100;
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let sb,code=null,table=null,players=[],err='',chan=null,poll=null,last='',noteMsg='';
+let sb,code=null,table=null,players=[],err='',chan=null,poll=null,last='',noteMsg='',sheet=null,xfers=[];
 let uid=store.get('pt_uid');if(!uid){uid='u'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);store.set('pt_uid',uid)}
 const T='poker_tables',P='poker_players';
+const RING='<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="36" fill="none" stroke="#2F5BFF" stroke-width="16"/></svg>';
+const logo=px=>`<span class="logo" aria-label="pokable" style="font-size:${px}px">p${RING}kable</span>`;
 
 function init(){
   if(SUPABASE_URL.includes('PASTE')||SUPABASE_KEY.includes('PASTE')){
-    $('#app').innerHTML='<h1>♠ Poker Table</h1><p class="sub">Setup needed: open this file in a text editor and paste your Supabase URL and key near the top.</p>';return}
+    $('#app').innerHTML='<p class="mu">Setup needed: paste your Supabase URL and key near the top of this file.</p>';return}
   try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)}
-  catch(e){$('#app').innerHTML='<p class="sub">Could not start. Check your internet and Supabase settings.</p>';return}
+  catch(e){$('#app').innerHTML='<p class="mu" style="text-align:center">Could not start. Check your internet and Supabase settings.</p>';return}
   const saved=store.get('pt_code');if(saved){enter(saved,true)}else render();
 }
 function genCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
@@ -88,7 +115,7 @@ function stop(){if(chan){sb.removeChannel(chan);chan=null}if(poll){clearInterval
 async function refresh(){
   if(!code)return false;
   const t=await sb.from(T).select('*').eq('code',code).maybeSingle();
-  if(t.error)return true; /* temporary glitch: keep what we have */
+  if(t.error)return true;
   if(!t.data)return false;
   const p=await sb.from(P).select('*').eq('code',code).order('joined');
   if(p.error)return true;
@@ -97,7 +124,7 @@ async function refresh(){
   if(sig!==last){last=sig;render()}
   return true;
 }
-function leave(){stop();code=null;table=null;players=[];last='';store.set('pt_code','');render()}
+function leave(){stop();code=null;table=null;players=[];last='';sheet=null;store.set('pt_code','');render()}
 
 const buys=p=>Array.isArray(p.buyins)?p.buyins:[];
 const tot=p=>buys(p).reduce((a,b)=>a+b,0);
@@ -110,69 +137,147 @@ async function upd(tbl,match,data){
   if(r.error){err='Update failed: '+r.error.message;render()}else refresh();
 }
 const updP=(id,data)=>upd(P,{code,uid:id},data);
-function addBuy(id){const el=$('#in_'+id),v=parseFloat(el.value);if(!(v>0))return;const p=players.find(x=>x.uid===id);el.value='';updP(id,{buyins:[...buys(p),v]})}
 function undoBuy(id){const p=players.find(x=>x.uid===id);updP(id,{buyins:buys(p).slice(0,-1)})}
-function cash(id){const v=parseFloat($('#out_'+id).value);if(v>=0)updP(id,{cashout:v})}
-function undoCash(id){updP(id,{cashout:null})}
-function takeOut(id){const el=$('#part_'+id),v=parseFloat(el.value);if(!(v>0))return;const p=players.find(x=>x.uid===id);el.value='';updP(id,{partials:[...parts(p),v]})}
-function takeBuyIn(id){const p=players.find(x=>x.uid===id),v=Math.round((tot(p)-partTot(p))*100)/100;if(v>0)updP(id,{partials:[...parts(p),v]})}
 function undoTakeOut(id){const p=players.find(x=>x.uid===id);updP(id,{partials:parts(p).slice(0,-1)})}
+function undoCash(id){updP(id,{cashout:null})}
 async function saveNote(id){const el=$('#note_'+id);err='';await updP(id,{notes:el.value.trim()});if(!err){noteMsg='Saved ✓';render();setTimeout(()=>{noteMsg='';render()},2000)}}
-function closeTable(){if(confirm('Close the table? The clock will stop.'))upd(T,{code},{closed:Date.now()})}
+function closeTable(){if(confirm('Close the table? The clock will stop and everyone will see the summary.'))upd(T,{code},{closed:Date.now()})}
 function reopenTable(){upd(T,{code},{closed:null})}
 function copy(){try{navigator.clipboard.writeText(code)}catch(e){}}
+function copyPay(i,btn){const t=xfers[i];if(!t)return;try{navigator.clipboard.writeText(t.to.notes||'')}catch(e){}btn.textContent='Copied'}
+
+/* ---- buy in / take out / cash out sheet ---- */
+const remaining=p=>Math.max(0,r2(tot(p)-partTot(p)));
+function openSheet(id,mode){sheet={id,mode,amt:''};err='';render()}
+function closeSheet(){sheet=null;err='';render()}
+function setMode(m){sheet.mode=m;sheet.amt='';err='';render()}
+function quickAmt(){const p=players.find(x=>x.uid===sheet.id);sheet.amt=String(remaining(p));render()}
+function confirmSheet(){
+  const p=players.find(x=>x.uid===sheet.id);if(!p){closeSheet();return}
+  const raw=String(sheet.amt||'').replace(/[£,\s]/g,''),v=parseFloat(raw),m=sheet.mode,id=sheet.id;
+  if(raw===''||isNaN(v)||v<0||(m!=='full'&&!(v>0))){err='Enter an amount.';return render()}
+  sheet=null;err='';
+  if(m==='buy')updP(id,{buyins:[...buys(p),v]});
+  else if(m==='part')updP(id,{partials:[...parts(p),v]});
+  else updP(id,{cashout:v});
+  render();
+}
 
 function elapsed(){if(!table)return'';const s=Math.floor(((table.closed||Date.now())-table.created)/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);
   return h+'h '+String(m).padStart(2,'0')+'m '+String(s%60).padStart(2,'0')+'s'}
+function elapsedShort(){const s=Math.floor(((table.closed||Date.now())-table.created)/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+'h '+m+'m':m+'m'}
 setInterval(()=>{const c=$('#clock');if(c&&table&&!table.closed)c.textContent=elapsed()},1000);
 
+/* ---- who pays whom (fewest payments) ---- */
+function settle(rows){
+  const d=rows.filter(r=>r.net<-0.005).map(r=>({p:r.p,a:-r.net})).sort((a,b)=>b.a-a.a);
+  const c=rows.filter(r=>r.net>0.005).map(r=>({p:r.p,a:r.net})).sort((a,b)=>b.a-a.a);
+  const out=[];let i=0,j=0;
+  while(i<d.length&&j<c.length){
+    const m=r2(Math.min(d[i].a,c[j].a));
+    if(m>0)out.push({from:d[i].p,to:c[j].p,amt:m});
+    d[i].a=r2(d[i].a-m);c[j].a=r2(c[j].a-m);
+    if(d[i].a<=0.005)i++;if(c[j].a<=0.005)j++;
+  }
+  return out;
+}
+
+function homeHTML(){
+  return `<div style="min-height:80vh;display:flex;flex-direction:column;justify-content:center;gap:36px">
+  <div style="text-align:center">${logo(64)}<p style="margin:12px 0 0;color:var(--mu)">Track the buy-ins. Settle the night.</p></div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <input class="pill" id="name" aria-label="Your name" placeholder="Your name" maxlength="20" value="${esc(store.get('pt_name')||'')}">
+    <button class="dk big" onclick="createTable()">Create a table</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <p class="mu" style="margin:0;text-align:center">or join a friend's table</p>
+    <div class="row"><input class="pill" id="code" aria-label="Table code" placeholder="CODE" maxlength="5" style="text-transform:uppercase;letter-spacing:.2em;flex:1"><button class="pill" style="flex:none;height:52px;padding:0 26px;border-radius:26px" onclick="joinTable()">Join</button></div>
+    <div class="err">${esc(err)}</div>
+  </div></div>`;
+}
+
+function sheetHTML(){
+  const p=players.find(x=>x.uid===sheet.id);if(!p)return'';
+  const m=sheet.mode,rem=remaining(p),who=p.uid===uid?'':` for ${esc(p.name)}`;
+  const title=m==='buy'?'Buy in'+who:'Cash out'+who;
+  const help=m==='buy'?'Add a buy-in or rebuy.':m==='part'?(rem>0?`Take money off the table and keep playing. Buy-ins not taken out yet: ${money(rem)}.`:'Take money off the table and keep playing.'):'Your final cash-out. Enter what you leave with, or 0 if you lost it all.';
+  const btnTxt=m==='buy'?'Add buy-in':m==='part'?'Take out and keep playing':'Cash out and finish';
+  return `<div class="ov" onclick="closeSheet()"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+  <div class="top" style="align-items:center"><b style="font-size:20px">${title}</b><button class="ghost" onclick="closeSheet()">Cancel</button></div>
+  ${m==='buy'?'':`<div class="seg"><button class="${m==='part'?'on':''}" onclick="setMode('part')">Take some out</button><button class="${m==='full'?'on':''}" onclick="setMode('full')">Cash out fully</button></div>`}
+  <div class="mu">${help}</div>
+  <input class="amt" id="sheetAmt" type="text" inputmode="decimal" aria-label="Amount in pounds" placeholder="£0" value="${esc(sheet.amt)}" oninput="sheet.amt=this.value">
+  ${m==='part'&&rem>0?`<button onclick="quickAmt()">My buy-ins (${money(rem)})</button>`:''}
+  <button class="p" style="height:52px" onclick="confirmSheet()">${btnTxt}</button>
+  <div class="err">${esc(err)}</div></div>`;
+}
+
+function playerHTML(p,isHost){
+  const can=p.uid===uid||isHost,t=tot(p),b=buys(p),pr=parts(p),pt=partTot(p),net=p.cashout==null?null:r2(outOf(p)-t);
+  let h=`<div class="card"><div class="top"><b style="font-size:17px">${esc(p.name)}${p.uid===uid?' (you)':''}${p.uid===table.host?' <span class="host">Host</span>':''}</b><span class="mu">In <b style="color:var(--tx)">${money(t)}</b></span></div>
+  <div class="chips">${b.map((x,i)=>`<span class="chip">${i?'Rebuy ':'Buy-in '}${money(x)}</span>`).join('')||'<span class="mu">No buy-ins yet</span>'}${pr.map(x=>`<span class="chip out">Took out ${money(x)}</span>`).join('')}</div>`;
+  if(p.cashout!=null)h+=`<div class="top" style="margin-top:10px"><span>Cashed out <b>${money(p.cashout)}</b>${pt?` <span class="mu">+ ${money(pt)} taken out earlier</span>`:''}</span><b class="${net>=0?'pos':'neg'}">${net>0?'+':''}${money(net)}</b></div>`;
+  if(can&&p.cashout==null){
+    h+=`<div class="row" style="margin-top:12px"><button onclick="openSheet('${p.uid}','buy')">Buy in</button><button onclick="openSheet('${p.uid}','part')">Cash out</button></div>`;
+    if(b.length||pr.length)h+=`<div class="row" style="justify-content:flex-start;margin-top:4px">${b.length?`<button class="ghost sm" style="flex:none" onclick="undoBuy('${p.uid}')">Undo last buy-in</button>`:''}${pr.length?`<button class="ghost sm" style="flex:none" onclick="undoTakeOut('${p.uid}')">Undo last take-out</button>`:''}</div>`;
+  }else if(can)h+=`<button class="ghost sm" style="margin-top:6px" onclick="undoCash('${p.uid}')">Undo cash-out</button>`;
+  if(p.uid===uid)h+=`<div class="pd"><div class="lab">Your payment details · everyone at the table can see this</div><div class="row"><textarea id="note_${p.uid}" aria-label="Your payment details" maxlength="300" placeholder="e.g. Monzo link or bank details, so people can pay you">${esc(p.notes||'')}</textarea><button style="flex:none;height:60px;padding:0 16px" onclick="saveNote('${p.uid}')">Save</button></div>${noteMsg?`<div class="mu" style="margin-top:6px">${noteMsg}</div>`:''}</div>`;
+  else if(p.notes)h+=`<div class="pd"><div class="lab">Payment details</div><div class="note">${linkify(p.notes)}</div></div>`;
+  return h+'</div>';
+}
+
+function summaryHTML(isHost,bought,out,unsettled){
+  const rows=players.map(p=>({p,net:r2(outOf(p)-tot(p)),done:p.cashout!=null}));
+  const done=rows.filter(r=>r.done).sort((a,b)=>b.net-a.net),wait=rows.filter(r=>!r.done);
+  const maxAbs=Math.max(0.01,...done.map(r=>Math.abs(r.net)));
+  const balanced=Math.abs(bought-out)<=0.005;
+  const me=players.find(p=>p.uid===uid);
+  xfers=(!unsettled&&balanced)?settle(done):[];
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;height:44px">${logo(24)}<span class="tag">Table closed</span></div>
+  <div class="card sum" style="padding:16px"><div class="mu" style="font-size:13px">Table ${esc(code)} · hosted by ${esc(table.host_name)}</div><div style="font-size:28px;font-weight:800;letter-spacing:-.02em;margin:2px 0 12px">That's a wrap</div>
+  <div class="stats"><div><b>${money(bought)}</b><span>played for</span></div><div><b>${players.length}</b><span>players</span></div><div><b>${elapsedShort()}</b><span>table time</span></div></div></div>`;
+  if(!unsettled&&!balanced)h+=`<div class="card neg">Cash-outs are ${money(Math.abs(bought-out))} ${out>bought?'more':'less'} than buy-ins. Check the numbers before anyone pays.</div>`;
+  h+=`<div class="sec">Results</div><div class="card" style="padding:2px 14px">`;
+  h+=done.map((r,i)=>{
+    const col=r.net>0?'pos':r.net<0?'neg':'',sign=r.net>0?'+':r.net<0?'-':'',w=Math.round(Math.abs(r.net)/maxAbs*100);
+    return `<div class="res"><div class="row" style="gap:12px"><div class="rk ${i===0&&r.net>0?'first':''}" style="flex:none">${i+1}</div>
+    <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:700">${esc(r.p.name)}${r.p.uid===uid?' <span class="mu" style="font-weight:600">(you)</span>':''}</div><div class="mu" style="font-size:13px">In ${money(tot(r.p))} · Out ${money(outOf(r.p))}</div></div>
+    <div class="${col}" style="flex:none;font-size:22px;font-weight:800;${col?'':'color:var(--mu)'}">${sign}${money(Math.abs(r.net))}</div></div>
+    ${r.net?`<div class="bar"><i style="width:${w}%;background:var(--${r.net>0?'pos':'neg'})"></i></div>`:''}</div>`}).join('')||'<p class="mu">Nobody has cashed out yet.</p>';
+  h+=`</div>`;
+  if(wait.length)h+=`<div class="card mu">Not cashed out yet: ${wait.map(r=>esc(r.p.name)).join(', ')}. Settle up appears once everyone has cashed out.</div>`;
+  if(!unsettled&&balanced){
+    h+=`<div class="sec">Settle up</div><div class="mu" style="margin-top:-4px">Fewest payments to square everyone.</div>`;
+    h+=xfers.length?xfers.map((t,i)=>`<div class="card pay"><div class="top"><div style="font-size:16px"><b>${esc(t.from.name)}</b> pays <b>${esc(t.to.name)}</b></div><div style="font-size:22px;font-weight:800">${money(t.amt)}</div></div>
+      <div class="det"><div style="min-width:0"><div class="mu" style="font-size:12px">${esc(t.to.name)}'s payment details</div>${t.to.notes?`<div class="note">${linkify(t.to.notes)}</div>`:'<div class="mu">None added yet. Ask them.</div>'}</div>${t.to.notes?`<button style="flex:none" onclick="copyPay(${i},this)">Copy</button>`:''}</div></div>`).join(''):'<div class="card mu">Everyone broke even. Nobody owes anything.</div>';
+  }
+  if(me)h+=`<div class="card"><div class="mu" style="font-size:12px;margin-bottom:6px">Your payment details · everyone at the table can see this</div><div class="row"><textarea id="note_${me.uid}" aria-label="Your payment details" maxlength="300" placeholder="e.g. Monzo link or bank details">${esc(me.notes||'')}</textarea><button style="flex:none;height:60px;padding:0 16px" onclick="saveNote('${me.uid}')">Save</button></div>${noteMsg?`<div class="mu" style="margin-top:6px">${noteMsg}</div>`:''}</div>`;
+  h+=`<div class="row" style="margin-top:6px">${isHost?'<button style="height:48px" onclick="reopenTable()">Reopen table</button>':''}<button class="p" style="height:48px" onclick="leave()">New table</button></div><div class="err">${esc(err)}</div>`;
+  return h;
+}
+
 function render(){
-  const keep={};document.querySelectorAll('input,textarea').forEach(i=>{if(i.id)keep[i.id]=i.value});const fo=document.activeElement&&document.activeElement.id;
+  const keep={};document.querySelectorAll('input,textarea').forEach(i=>{if(i.id&&i.id!=='sheetAmt')keep[i.id]=i.value});
+  const fo=document.activeElement&&document.activeElement.id;
   const a=$('#app');
-  if(!code||!table){
-    a.innerHTML=`<h1>♠ Poker Table</h1><p class="sub">Track buy-ins and cash-outs with your group</p>
-    <div class="card"><input id="name" placeholder="Your name" maxlength="20" value="${esc(store.get('pt_name')||'')}">
-    <button class="big" onclick="createTable()">Create a table</button>
-    <p class="mu" style="text-align:center;margin:4px 0 10px">or join a friend's</p>
-    <input id="code" placeholder="TABLE CODE" maxlength="5" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
-    <button class="big alt" onclick="joinTable()">Join table</button><div class="err">${esc(err)}</div></div>`;
-  }else{
+  if(!code||!table){a.innerHTML=homeHTML()}
+  else{
     const isHost=table.host===uid,bought=players.reduce((s,p)=>s+tot(p),0),out=players.reduce((s,p)=>s+outOf(p),0);
     const unsettled=players.some(p=>p.cashout==null);
-    let h=`<div class="card"><div class="mu" style="text-align:center">Table code (tap to copy)</div><div class="code" onclick="copy()">${esc(code)}</div>
-    <p class="mu" style="text-align:center;margin:4px 0 12px">Host: ${esc(table.host_name)} · ${table.closed?'Closed':'Open'} for <b id="clock">${elapsed()}</b></p>
-    <div class="stats"><div><b>${money(bought-out)}</b><span>on the table</span></div><div><b>${money(bought)}</b><span>total bought in</span></div><div><b>${players.length}</b><span>players</span></div></div></div>`;
-    if(table.closed&&!unsettled&&Math.abs(bought-out)>0.005)h+=`<div class="card neg">Cash-outs are ${money(Math.abs(bought-out))} ${out>bought?'more':'less'} than buy-ins.</div>`;
-    if(table.closed){
-      const rows=players.map(p=>({p,net:Math.round((outOf(p)-tot(p))*100)/100,done:p.cashout!=null}));
-      const done=rows.filter(r=>r.done).sort((a,b)=>b.net-a.net);
-      const wins=done.filter(r=>r.net>0.005),loss=done.filter(r=>r.net<-0.005).reverse(),even=done.filter(r=>Math.abs(r.net)<=0.005),wait=rows.filter(r=>!r.done);
-      const ln=r=>`<div class="line"><span>${esc(r.p.name)}</span><b class="${r.net>=0?'pos':'neg'}">${r.net>0?'+':''}${money(r.net)}</b></div>`;
-      h+=`<div class="card sum"><b>Table summary</b><div class="mu">${players.length} players · played for ${elapsed()} · ${money(bought)} bought in</div>
-      ${wins.length?'<h3>Won</h3>'+wins.map(r=>ln(r)+(r.p.notes?`<div class="note">${linkify(r.p.notes)}</div>`:'')).join(''):''}
-      ${loss.length?'<h3>Lost</h3>'+loss.map(ln).join(''):''}
-      ${even.length?'<h3>Broke even</h3>'+even.map(ln).join(''):''}
-      ${wait.length?`<p class="mu" style="margin-bottom:0">Not cashed out yet: ${wait.map(r=>esc(r.p.name)).join(', ')}</p>`:''}</div>`;
+    let h='';
+    if(table.closed){h=summaryHTML(isHost,bought,out,unsettled)}
+    else{
+      h=`<div style="display:flex;justify-content:space-between;align-items:center;height:44px">${logo(24)}<button class="ghost" onclick="leave()">Leave</button></div>
+      <div class="card" style="padding:16px;text-align:center"><div class="mu" style="font-size:13px">Table code · tap to copy</div><div class="code" onclick="copy()">${esc(code)}</div><div class="mu">Host ${esc(table.host_name)} · Open for <b id="clock">${elapsed()}</b></div></div>
+      <div class="card stats" style="padding:14px 8px"><div><b>${money(bought-out)}</b><span>on the table</span></div><div><b>${money(bought)}</b><span>bought in</span></div><div><b>${players.length}</b><span>players</span></div></div>`;
+      h+=players.map(p=>playerHTML(p,isHost)).join('');
+      h+=`<div class="row">${isHost?'<button class="bad" style="height:48px" onclick="closeTable()">Close table</button>':''}</div><div class="err">${sheet?'':esc(err)}</div>`;
     }
-    players.forEach(p=>{
-      const can=p.uid===uid||isHost,t=tot(p),b=buys(p),pr=parts(p),pt=partTot(p),net=p.cashout==null?null:Math.round((outOf(p)-t)*100)/100;
-      h+=`<div class="card"><div class="top"><b>${esc(p.name)}${p.uid===table.host?' 👑':''}${p.uid===uid?' (you)':''}</b><span>In: <b>${money(t)}</b></span></div>
-      <div class="chips">${b.map((x,i)=>`<span class="chip">${i?'Rebuy ':'Buy-in '}${money(x)}</span>`).join('')||'<span class="mu">No buy-ins yet</span>'}${pr.map(x=>`<span class="chip out">Took out ${money(x)}</span>`).join('')}</div>`;
-      if(p.cashout!=null)h+=`<div class="top"><span>Cashed out <b>${money(p.cashout)}</b>${pt?` <span class="mu">+ ${money(pt)} taken out earlier</span>`:''}</span><b class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</b></div>`;
-      if(can&&p.cashout==null)h+=`<div class="row"><input id="in_${p.uid}" type="number" inputmode="decimal" placeholder="£ buy-in / rebuy"><button onclick="addBuy('${p.uid}')">Add</button></div>
-        <div class="row" style="margin-top:8px"><input id="part_${p.uid}" type="number" inputmode="decimal" placeholder="£ take out, keep playing"><button class="alt" onclick="takeOut('${p.uid}')">Take out</button></div>
-        <div class="row" style="margin-top:8px"><input id="out_${p.uid}" type="number" inputmode="decimal" placeholder="£ final cash-out"><button class="alt" onclick="cash('${p.uid}')">Cash out</button></div>
-        ${b.length?`<button class="alt sm" onclick="undoBuy('${p.uid}')">Undo last buy-in</button>`:''}${pr.length?`<button class="alt sm" onclick="undoTakeOut('${p.uid}')">Undo last take-out</button>`:''}${t-pt>0.005?`<button class="alt sm" onclick="takeBuyIn('${p.uid}')">Take out buy-ins (${money(t-pt)})</button>`:''}`;
-      else if(can)h+=`<button class="alt sm" onclick="undoCash('${p.uid}')">Undo cash-out</button>`;
-      if(p.uid===uid)h+=`<div class="mu" style="margin-top:12px">Your payment details (everyone at the table can see these)</div><textarea id="note_${p.uid}" maxlength="300" placeholder="e.g. Monzo link or bank details, so people can pay you">${esc(p.notes||'')}</textarea><div class="row"><button class="alt sm" onclick="saveNote('${p.uid}')">Save details</button><span class="mu" style="margin-top:8px">${noteMsg}</span></div>`;
-      else if(p.notes)h+=`<div class="mu" style="margin-top:10px">Payment details</div><div class="note">${linkify(p.notes)}</div>`;
-      h+='</div>';
-    });
-    h+=`<div class="row">${isHost?(table.closed?'<button class="alt" onclick="reopenTable()">Reopen table</button>':'<button class="bad" onclick="closeTable()">Close table</button>'):''}<button class="alt" onclick="leave()">Leave</button></div><div class="err">${esc(err)}</div>`;
+    if(sheet&&!table.closed)h+=sheetHTML();
     a.innerHTML=h;
   }
   for(const k in keep){const e=document.getElementById(k);if(e)e.value=keep[k]}
-  if(fo){const e=document.getElementById(fo);if(e)e.focus()}
+  if(fo){const e=document.getElementById(fo);if(e){e.focus();if(fo==='sheetAmt'){try{const n=e.value.length;e.setSelectionRange(n,n)}catch(x){}}}}
 }
 init();
 </script></body></html>
